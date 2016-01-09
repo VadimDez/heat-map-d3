@@ -1,0 +1,7 @@
+.tooltip {
+    position: absolute;
+    display: none;
+}
+.tooltip.active {
+    display: block;
+}

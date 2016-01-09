@@ -1,0 +1,17 @@
+{
+  "name": "heat-map-d3",
+  "homepage": "https://github.com/VadimDez/heat-map-d3",
+  "authors": [
+    "Vadym Yatsyuk <vasp3d@gmail.com>"
+  ],
+  "description": "d3 project",
+  "main": "app.js",
+  "moduleType": [],
+  "keywords": [
+    "d3"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "d3": "~3.5.12"
+  }
+}
