@@ -4,12 +4,15 @@
 (function () {
   var url = 'https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/global-temperature.json';
   d3.json(url, function (data) {
-    drawChart(data.monthlyVariance);
+    drawChart(data);
   });
 
   function drawChart(data) {
+    var monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
     var width = 960;
-    var height = 500;
+    var height = 200;
     var $chart = d3.select('.chart')
       .attr('height', height)
       .attr('width', width);
@@ -19,28 +22,46 @@
     function getYear(array) {
       return array.year;
     }
+    var minYear = d3.min(data.monthlyVariance, getYear);
+    var maxYear = d3.max(data.monthlyVariance, getYear);
     var xScale = d3.scale.linear()
-      .range([0, width])
-      .domain([d3.min(data, getYear), d3.max(data, getYear)]);
+      .range([0, width - 10])
+      .domain([minYear, maxYear]);
 
     // y scale
     function getMonth(array) {
       return array.month;
     }
     var yScale = d3.scale.linear()
-      .range([0, height])
-      .domain([d3.min(data, getMonth), d3.max(data, getMonth)]);
+      .range([0, 120]) // 120 = 10px height * 12 month
+      .domain([d3.min(data.monthlyVariance, getMonth), d3.max(data.monthlyVariance, getMonth)]);
+
+    var pointWidth = width / (maxYear - minYear);
+
+    function getTemperature(array) {
+      return data.baseTemperature + array.variance;
+    }
+    var minTemperature = d3.min(data.monthlyVariance, getTemperature);
+    if (minTemperature > 0) {
+      minTemperature = 0;
+    }
+    var colorScale = d3.scale.quantile()
+      .domain([minTemperature, d3.max(data.monthlyVariance, getTemperature)])
+      .range(["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"]);
 
     // add data
     var $point = $chart.selectAll('.point')
-      .data(data);
+      .data(data.monthlyVariance);
 
     // append points
     $point.enter()
       .append('rect')
       .attr('class', 'point')
-      .attr('width', 10)
-      .attr('height', 10)
+      .attr('width', pointWidth)
+      .attr('height', 11)
+      .style('fill', function (d) {
+        return colorScale(data.baseTemperature + d.variance);
+      })
       .attr('x', function (d) {
         return xScale(d.year);
       })
@@ -51,15 +72,62 @@
         return $tooltip.classed('active', true);
       })
       .on('mousemove', function (d) {
+        // set tooltip
         $tooltip
           .style('left', (event.pageX + 10) + 'px')
-          .style('top', event.pageY + 'px')
-          .text(JSON.stringify(d));
+          .style('top', event.pageY + 'px');
+
+        $tooltip.select('.year')
+          .text(d.year);
+        $tooltip.select('.month')
+          .text(monthNames[d.month - 1]);
+        $tooltip.select('.temperature .value')
+          .text((data.baseTemperature + d.variance).toFixed(3));
+        $tooltip.select('.temperature_variance .value')
+          .text(d.variance);
+
         return d3.select(this).classed('active', true);
       })
       .on('mouseleave', function () {
         d3.select(this).classed('active', false);
         return $tooltip.classed('active', false);
+      });
+
+    var colorsData = colorScale.quantiles();
+    var widthColorBlock = 30;
+    var $colorsLegend = d3.select('.colors-legend')
+      .attr('x', 20)
+      .attr('y', height + 20)
+      .attr('width', colorsData.length * widthColorBlock)
+      .attr('height', 100);
+
+    var $colors = $colorsLegend.selectAll('.color')
+      .data(colorsData);
+
+    var $colorGroup = $colors.enter()
+      .append('g')
+      .attr('class', 'color')
+      .attr('width', widthColorBlock)
+      .attr('transform', function (d, i) {
+        return 'translate(' + i * widthColorBlock + ',0)';
+      });
+
+    // add colored rect
+    $colorGroup
+      .append('rect')
+      .attr('width', widthColorBlock)
+      .attr('height', 10)
+      .attr('fill', function (d) {
+        return colorScale(d);
+      });
+
+    // add text
+    $colorGroup
+      .append('text')
+      .attr('x', 3)
+      .attr('y', 20)
+      .text(function (d) {
+        return '≥ ' + d.toFixed(2);
       });
   }
 }());
